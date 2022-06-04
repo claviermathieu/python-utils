@@ -2,29 +2,36 @@ from openpyxl import load_workbook
 import os
 import re
 import pandas as pd
+from pydantic import FilePath
+
+
 
 
 class ExcelReader():
 
-    def __init__(self, path = "input\\", filename = str) -> None:
-        self.path = path
-        self.filename = filename
-        self.workbook = load_workbook(filename= path +filename, data_only=True, keep_links=False)
+    def __init__(self, filepath: str) -> None:
+        self.filepath = filepath
+        self.workbook = load_workbook(filename= filepath, data_only=True, keep_links=False)
+
+
+
+
+
 
     def __repr__(self) -> str:
-        myString = "Instance de la classe ExcelFile\n- Nom du fichier : {}".format(self.filename)
+        myString = "Instance de la classe ExcelFile\n- Nom du fichier : {}".format(self.filepath)
         return myString
 
     def get_sheet(self):
         return self.workbook.sheetnames
 
-    def get_table(self, sheet_name, table_name):
+    def get_table(self, sheet_name, table_name):    
         a = self.workbook[sheet_name].tables[table_name].ref.split(':')
 
         for i in range(len(a)):
             a[i] = re.split('(\d+)', a[i])[:-1]
 
-        df = pd.read_excel(self.path + self.filename, sheet_name=sheet_name, skiprows=int(a[0][1]) - 1, nrows=int(a[1][1])-int(a[0][1]),
+        df = pd.read_excel(self.filepath, sheet_name=sheet_name, skiprows=int(a[0][1]) - 1, nrows=int(a[1][1])-int(a[0][1]),
                       usecols=a[0][0] + ":" + a[1][0])
         return df
 
@@ -35,7 +42,7 @@ class ExcelReader():
         return self.workbook[sheet][cell].value
 
 
-    def get_range(self, sheet_name, cols, skiprows, nrows, names):
+    def get_range(self, sheet_name, cols, skiprows, nrows):
         """
         Parameters
         ----------
@@ -53,5 +60,17 @@ class ExcelReader():
         >>> objet.get_range(sheet_name="My Sheet", cols='F:M', skiprows=5, nrows=10)
 
         """
-        file_location = self.path + self.filename
-        return pd.read_excel(file_location,sheet_name=sheet_name, usecols=cols, skiprows=skiprows, nrows=nrows, names = names)
+        return pd.read_excel(self.filepath,sheet_name=sheet_name, usecols=cols, skiprows=skiprows, nrows=nrows)
+
+
+
+
+    def write_cell1(self, sheet_name, cell, value) -> None:
+        self.workbook[sheet_name][cell].value = value
+
+    def write_cell2(self, sheet_name, row, col, value) -> None:
+        self.workbook[sheet_name].cell(row=row, column=col).value = value
+
+
+    def save(self) -> None:
+        self.workbook.save(self.filepath)
